@@ -1,0 +1,1419 @@
+<title>__TITLE__</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+<style>
+__PALETTE__
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  /* פס גלילה קלאסי וקבוע: ב-macOS ברירת המחדל היא overlay שקוף שנעלם,
+     ועל רקע בהיר אין במה לאחוז. ::-webkit-scrollbar עם רוחב מפורש מכריח
+     פס תמידי בכרום ובספארי. scrollbar-color נשאר לפיירפוקס בלבד, כי בכרום
+     הוא דורס את הפסאודו-אלמנטים ומחזיר פס דק. */
+  @supports (-moz-appearance: none) {
+    .frame, .picker, .page, .drawer { scrollbar-color: var(--scroll-thumb) var(--scroll-track); }
+  }
+  .frame::-webkit-scrollbar, .picker::-webkit-scrollbar,
+  .page::-webkit-scrollbar, .drawer::-webkit-scrollbar {
+    inline-size: 13px; block-size: 13px;
+  }
+  .frame::-webkit-scrollbar-track, .picker::-webkit-scrollbar-track,
+  .page::-webkit-scrollbar-track, .drawer::-webkit-scrollbar-track {
+    background: var(--scroll-track);
+  }
+  .frame::-webkit-scrollbar-thumb, .picker::-webkit-scrollbar-thumb,
+  .page::-webkit-scrollbar-thumb, .drawer::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb); border-radius: 8px;
+    border: 3px solid var(--scroll-track); background-clip: padding-box;
+  }
+  .frame::-webkit-scrollbar-thumb:hover, .picker::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-hover); background-clip: padding-box;
+  }
+  .frame::-webkit-scrollbar-corner, .picker::-webkit-scrollbar-corner { background: var(--scroll-track); }
+
+  /* app-shell: הדף בגובה החלון, והגלילה היחידה היא בתוך הטבלה.
+     dvh במקום vh כדי ששורת הכתובת בטלפון לא תשנה את הגובה תוך כדי גלילה. */
+  .page {
+    direction: rtl; background: var(--bg); color: var(--text);
+    font-family: var(--heb); font-size: 15px; line-height: 1.55;
+    block-size: 100vh; block-size: 100dvh;
+    padding: 24px clamp(14px, 3vw, 40px) 20px;
+    display: flex; overflow: auto; overflow-x: hidden;
+  }
+  .shell {
+    max-inline-size: 1560px; margin-inline: auto; inline-size: 100%;
+    display: flex; flex-direction: column; gap: 16px;
+    flex: 1 1 auto; min-block-size: 0;
+  }
+
+  .masthead { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px 24px; }
+  .masthead > div { flex: 1 1 460px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--faint); direction: ltr; text-align: start; margin-block-end: 6px;
+  }
+  h1 { font-size: clamp(25px, 3.6vw, 38px); line-height: 1.12; font-weight: 800; letter-spacing: -.015em; margin: 0; text-wrap: balance; }
+  .sub { color: var(--dim); font-size: 14.5px; margin-block-start: 7px; max-inline-size: 60ch; }
+  .sub b { color: var(--text); font-weight: 700; }
+  .theme-btn {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    background: transparent; color: var(--dim); border: 1px solid var(--line);
+    border-radius: 999px; padding: 7px 13px; cursor: pointer;
+  }
+  .theme-btn:hover { color: var(--text); border-color: var(--accent); }
+  .theme-btn:disabled { opacity: .4; cursor: default; }
+  .theme-btn:disabled:hover { color: var(--dim); border-color: var(--line); }
+
+  .meter {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
+    padding: 16px 18px; display: flex; flex-wrap: wrap; gap: 10px 24px;
+    align-items: baseline; justify-content: space-between; box-shadow: var(--shadow);
+  }
+  .meter-graph { flex: 1 0 100%; block-size: 46px; inline-size: 100%; display: block; }
+  .meter-graph .track { stroke: var(--line); }
+  .meter-graph .live  { stroke: var(--accent); }
+  .meter-graph path { fill: none; vector-effect: non-scaling-stroke;
+               stroke-linejoin: round; stroke-linecap: round; }
+  .meter-graph .p0 { stroke-width: 2.25; }
+  /* bars מצייר מלבנים סגורים; שאר הגרפים הם קווים פתוחים */
+  .meter-graph.bars .p0 { fill: currentColor; stroke-width: 1; }
+  .meter-graph.bars .track { color: var(--line); }
+  .meter-graph.bars .live  { color: var(--accent); }
+  .meter-graph .p1 { stroke-width: 2; stroke-dasharray: 5 3.5; }
+  .meter-graph .axis  { stroke-width: 1; opacity: .45; }
+  .meter-graph .ticks { stroke-width: 1; opacity: .55; }
+  .meter-nums { display: flex; align-items: baseline; gap: 10px; font-family: var(--mono); }
+  .meter-nums .big { font-size: 30px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .meter-nums .of { font-size: 14px; color: var(--faint); }
+  .meter-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--dim); font-family: var(--mono); }
+  .meter-meta b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .controls { display: flex; flex-direction: column; gap: 9px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
+  .group { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .glabel { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+  .chip {
+    font: inherit; font-size: 13px; cursor: pointer; background: var(--surface); color: var(--dim);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .chip:hover { color: var(--text); }
+  .chip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .chip .dot { inline-size: 7px; block-size: 7px; border-radius: 50%; background: currentColor; opacity: .85; }
+__BANDDOTS__
+  .chip.part { font-family: var(--mono); font-size: 12px; }
+  .flag-chip svg { inline-size: 13px; block-size: 13px; }
+  .flag-chip .flag-cloth { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
+  .flag-chip .flag-pole  { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+  .flag-chip[aria-pressed="true"] .flag-cloth { fill: currentColor; }
+
+  .search {
+    font: inherit; font-size: 13.5px; color: var(--text); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 4px; padding: 7px 11px; inline-size: 210px;
+  }
+  .search::placeholder { color: var(--faint); }
+  .search:focus-visible, .chip:focus-visible, .theme-btn:focus-visible, .reset:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .reset {
+    font: inherit; font-size: 12.5px; cursor: pointer; background: transparent; color: var(--dim);
+    border: 1px dashed var(--line); border-radius: 4px; padding: 6px 12px;
+  }
+  .reset:hover { color: var(--warn); border-color: var(--warn); }
+
+  .frame {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
+    overflow: auto; box-shadow: var(--shadow);
+    flex: 1 1 auto; min-block-size: 220px;
+    overscroll-behavior: contain;   /* גלילה בתוך הטבלה לא "בורחת" לדף */
+  }
+  /* color מפורש על הטבלה — הגנה נוספת מפני ירושת צבע חסרה */
+  table {
+    border-collapse: separate; border-spacing: 0; inline-size: auto; min-inline-size: 100%;
+    color: var(--text); background: var(--surface);
+  }
+
+  thead th {
+    position: sticky; top: 0; z-index: 3; background: var(--surface-2);
+    border-block-end: 1px solid var(--line); padding: 10px 12px; text-align: start;
+    vertical-align: bottom; inline-size: 268px; min-inline-size: 268px;
+  }
+  thead th.corner {
+    inset-inline-start: 0; z-index: 5; min-inline-size: 208px; inline-size: 208px;
+    border-inline-end: 1px solid var(--line);
+  }
+  .col-part { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; color: var(--faint); }
+  .col-week { font-size: 14.5px; font-weight: 700; }
+  .col-en { font-size: 12.5px; color: var(--dim); direction: ltr; }
+  .col-heb { font-family: var(--heb); font-size: 11.5px; color: var(--faint); }
+  .col-tally { font-family: var(--mono); font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; margin-block-start: 5px; }
+  .col-bar { block-size: 3px; background: var(--line); margin-block-start: 4px; }
+  .col-bar > i { display: block; block-size: 100%; background: var(--accent); }
+  .corner-title { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+
+  tbody th {
+    position: sticky; inset-inline-start: 0; z-index: 2; background: var(--surface);
+    text-align: start; vertical-align: top; padding: 12px; border-inline-end: 1px solid var(--line);
+    border-block-end: 1px solid var(--line-soft); min-inline-size: 208px; inline-size: 208px;
+  }
+  tbody td { vertical-align: top; padding: 9px; border-block-end: 1px solid var(--line-soft); border-inline-start: 1px solid var(--line-soft); }
+
+  tr.band > th, tr.band > td { background: var(--bg); padding: 7px 12px; border-block: 1px solid var(--line); }
+  tr.band > th { position: sticky; inset-inline-start: 0; z-index: 2; }
+  .band-name {
+    display: flex; align-items: center; gap: 9px; font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase; color: var(--dim);
+  }
+  .band-name .rule { flex: 1; block-size: 1px; background: var(--line); }
+  .band-name .tag { font-weight: 700; }
+  .band-heb { font-family: var(--heb); letter-spacing: 0; text-transform: none; font-size: 12.5px; color: var(--faint); }
+
+  .topic { font-size: 14px; font-weight: 700; line-height: 1.35; }
+  .topic-meta {
+    font-family: var(--mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums;
+    margin-block-start: 5px; display: flex; align-items: center; gap: 7px; justify-content: flex-end;
+  }
+  tbody tr[data-band] th::after { content: ""; position: absolute; inset-block: 0; inset-inline-end: 0; inline-size: 3px; background: var(--band-hue); }
+__BANDHUES__
+
+  .stack { display: flex; flex-direction: column; gap: 7px; }
+  .card {
+    display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 9px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-inline-start: 3px solid var(--band-hue); border-radius: 3px; padding: 9px 10px;
+    cursor: pointer; transition: border-color .12s, background .12s;
+  }
+  .card:hover { border-color: var(--band-hue); }
+  .card:has(input:checked) { background: var(--done-bg); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+  .card:has(input:checked) .q-title { text-decoration: line-through; text-decoration-thickness: 1px; color: var(--faint); }
+  .card:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .card input { margin: 2px 0 0; inline-size: 15px; block-size: 15px; accent-color: var(--accent); cursor: pointer; }
+
+  /* דגל "לחזור לזה" — מימד נפרד מ'נפתר', ולכן גם צבע נפרד ולא צבע האשכול,
+     כדי שלא ייקרא כחלק מקידוד הנושאים. */
+  .flag {
+    align-self: start; margin: -2px -3px 0 0; padding: 3px;
+    background: none; border: 0; cursor: pointer; line-height: 0;
+    border-radius: 4px; color: var(--faint);
+  }
+  .flag svg { inline-size: 15px; block-size: 15px; display: block; }
+  .flag .flag-cloth { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
+  .flag .flag-pole  { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+  .flag:hover { color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, transparent); }
+  .flag:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .flag[aria-pressed="true"] { color: var(--warn); }
+  .flag[aria-pressed="true"] .flag-cloth { fill: currentColor; }
+
+  /* כרטיס מסומן: פס עדין בקצה, בלי לגעת בפס האשכול שבצד השני */
+  .card:has(.flag[aria-pressed="true"]) {
+    border-inline-end: 3px solid var(--warn);
+    padding-inline-end: 7px;
+  }
+
+  .q-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .q-no { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--band-hue); font-variant-numeric: tabular-nums; direction: ltr; }
+  .q-parts { font-family: var(--mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .q-star { font-size: 11px; color: var(--star); line-height: 1; }
+  .q-title { display: block; font-size: 13px; line-height: 1.4; margin-block-start: 3px; font-weight: 600; }
+  /* התיאור המלא מוצג רק בתצוגת הרשימה ובמגירה. במטריצה הוא היה מותח
+     כל כרטיס לגובה של פסקה ומבטל את היכולת לסרוק את הטבלה. */
+  .q-desc {
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    font-size: 12px; line-height: 1.45; margin-block-start: 3px; color: var(--dim);
+  }
+  .q-foot { display: flex; align-items: center; gap: 10px; margin-block-start: 6px; flex-wrap: wrap; }
+  .q-also { font-size: 10.5px; color: var(--faint); }
+  /* כפתור בתוך label אינו מפעיל את התיבה — button הוא interactive content,
+     ולכן הלחיצה לא נספרת כלחיצה על ה-label ולא מסמנת את השאלה כנפתרה. */
+  .q-open {
+    font: inherit; font-size: 10.5px; cursor: pointer; color: var(--faint);
+    background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px;
+  }
+  .q-open:hover { color: var(--text); border-color: var(--band-hue); }
+  .q-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .q-open.has-sol { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+  .q-tag {
+    font-size: 10px; color: var(--faint); border: 1px dashed var(--line);
+    border-radius: 4px; padding: 1px 5px;
+  }
+  .q-tag.warn { color: var(--warn); border-color: var(--warn); }
+  .card.is-void, .card.is-missing { opacity: .6; }
+  .card.is-void:hover, .card.is-missing:hover { opacity: 1; }
+
+  .level { display: inline-flex; gap: 2px; align-items: flex-end; block-size: 11px; }
+  .level i { inline-size: 3px; background: var(--line); border-radius: .5px; }
+  .level i:nth-child(1) { block-size: 4px; }
+  .level i:nth-child(2) { block-size: 6px; }
+  .level i:nth-child(3) { block-size: 8px; }
+  .level i:nth-child(4) { block-size: 9.5px; }
+  .level i:nth-child(5) { block-size: 11px; }
+  .level i.on { background: var(--band-hue); }
+
+  .empty { color: var(--line); font-family: var(--mono); font-size: 12px; padding: 4px 2px; }
+  .none { padding: 40px; text-align: center; color: var(--dim); }
+
+  /* ---------- תצוגת רשימה: נכנסת לתוקף במסכים צרים ---------- */
+  #listView { display: none; flex-direction: column; gap: 22px; }
+  .lt-band {
+    display: flex; align-items: center; gap: 9px; font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--dim); margin-block-start: 6px;
+  }
+  .lt-band .rule { flex: 1; block-size: 1px; background: var(--line); }
+  .lt-group { display: flex; flex-direction: column; gap: 8px; }
+  .lt-head {
+    display: flex; align-items: baseline; gap: 8px; margin: 0;
+    padding-inline-start: 9px; border-inline-start: 3px solid var(--band-hue);
+  }
+  .lt-name { font-size: 15px; font-weight: 700; }
+  .lt-count {
+    font-family: var(--mono); font-size: 11px; color: var(--faint);
+    font-variant-numeric: tabular-nums; margin-inline-start: auto;
+  }
+  .q-week {
+    font-size: 11px; color: var(--band-hue); font-weight: 600;
+    display: block; margin-block-end: 2px;
+  }
+  #listView .card { border-radius: 4px; }
+
+  /* לוח בחירת השבועות */
+  .picker {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
+    padding: 11px 13px; display: flex; flex-direction: column; gap: 9px;
+    max-block-size: 34vh; overflow: auto; flex: 0 0 auto;
+  }
+  .picker-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; justify-content: space-between; }
+  .picker-row { display: flex; align-items: flex-start; gap: 8px; padding-block: 5px; }
+  .picker-row + .picker-row { border-block-start: 1px solid var(--line-soft); }
+  .picker-part {
+    font-family: var(--mono); font-size: 11.5px; color: var(--dim); font-weight: 700;
+    inline-size: 52px; flex: 0 0 auto; padding-block-start: 5px;
+  }
+  .picker-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip.week { font-size: 12.5px; padding: 4px 10px; }
+  #weekSummary { color: inherit; font-weight: 700; }
+
+  /* ---------- מגירת השאלה: התרגיל עצמו והפתרון ---------- */
+  .scrim {
+    position: fixed; inset: 0; z-index: 40;
+    background: rgba(23,24,39,.42); backdrop-filter: blur(1.5px);
+  }
+  :root[data-theme="dark"] .scrim { background: rgba(0,0,0,.62); }
+  .drawer {
+    position: fixed; inset-block: 0; inset-inline-start: 0; z-index: 41;
+    inline-size: min(900px, 100vw); background: var(--surface); color: var(--text);
+    border-inline-end: 1px solid var(--line);
+    box-shadow: 0 0 40px -8px rgba(0,0,0,.35);
+    display: flex; flex-direction: column; overflow: hidden;
+    font-family: var(--heb); direction: rtl;
+  }
+  .drawer-head {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px 18px;
+    flex-wrap: wrap; padding: 16px 20px 13px; border-block-end: 1px solid var(--line);
+    background: var(--surface-2); flex: 0 0 auto;
+  }
+  .drawer-head > div:first-child { min-inline-size: 0; }
+  .drawer-eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--faint); direction: ltr; text-align: start; margin-block-end: 4px;
+  }
+  .drawer-head h2 { margin: 0; font-size: 19px; line-height: 1.25; font-weight: 800; }
+  .drawer-meta {
+    margin-block-start: 6px; font-size: 12px; color: var(--dim);
+    display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center;
+  }
+  .drawer-body { overflow: auto; padding: 18px 20px 40px; flex: 1 1 auto; overscroll-behavior: contain; }
+  .drawer-lead {
+    margin: 0 0 20px; font-size: 13.5px; line-height: 1.6; color: var(--dim);
+    border-inline-start: 3px solid var(--line); padding-inline-start: 12px;
+  }
+  .sec-label {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--faint); display: flex; align-items: center; gap: 9px; margin-block-end: 9px;
+  }
+  .sec-label .rule { flex: 1; block-size: 1px; background: var(--line); }
+  .shot {
+    border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2);
+    padding: 6px; margin-block-end: 22px; overflow-x: auto;
+  }
+  .shot img { display: block; max-inline-size: 100%; block-size: auto; border-radius: 2px; }
+  /* התרגילים צולמו רחבים מאוד. במצב "גודל מלא" התמונה יוצאת מהרוחב
+     ונגללת אופקית בתוך המסגרת, במקום להצטמצם עד שהנוסחאות לא קריאות. */
+  .shot.full img { max-inline-size: none; }
+  .shot-bar { display: flex; gap: 8px; align-items: center; margin-block-end: 8px; }
+  /* העמודים נצמדים; המקור הוא צילומי מסך של אותו מסמך ורצף ביניהם
+     הוא מה שהופך אותם חזרה לפתרון אחד. */
+  .sol-shot img + img { margin-block-start: 0; }
+
+  .sol { font-size: 14.5px; line-height: 1.75; }
+  .sol h3 { font-size: 15px; font-weight: 800; margin: 22px 0 8px; }
+  .sol h4 { font-size: 13.5px; font-weight: 700; margin: 18px 0 6px; color: var(--dim); }
+  .sol p { margin: 0 0 11px; }
+  .sol ul, .sol ol { margin: 0 0 11px; padding-inline-start: 22px; }
+  .sol li { margin-block-end: 5px; }
+  .sol code {
+    font-family: var(--mono); font-size: .9em; background: var(--surface-2);
+    border: 1px solid var(--line-soft); border-radius: 3px; padding: 1px 4px;
+  }
+  .sol hr { border: 0; border-block-start: 1px solid var(--line); margin: 20px 0; }
+  .sol .katex { font-size: 1.05em; }
+  /* כל נוסחה מבודדת מהעברית. בלי הבידוד סוגר או סימן מינוס בקצה הביטוי
+     נגרר לצד הלא נכון של השורה. */
+  .sol .math-block {
+    display: block;
+    direction: ltr; unicode-bidi: isolate; text-align: center;
+    margin: 14px 0; overflow-x: auto; overflow-y: hidden; padding-block: 2px;
+  }
+  .sol .math-inline { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+  .sol .math-err {
+    font-family: var(--mono); font-size: 12px; color: var(--warn);
+    background: var(--surface-2); border: 1px dashed var(--warn);
+    border-radius: 3px; padding: 1px 5px; direction: ltr; unicode-bidi: isolate;
+    display: inline-block;
+  }
+  .sol-note {
+    margin: 0 0 14px; font-size: 13px; line-height: 1.6; color: var(--dim);
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-inline-start: 3px solid var(--star); border-radius: 4px;
+    padding: 9px 12px;
+  }
+  .sol-note b { color: var(--text); }
+  .sol-none {
+    color: var(--faint); font-size: 13.5px; border: 1px dashed var(--line);
+    border-radius: 4px; padding: 18px; text-align: center;
+  }
+  .sol-none code { font-family: var(--mono); font-size: 12px; }
+
+  #viewBtn, #filterToggle { display: none; }
+
+  @media (max-width: 760px) {
+    .frame { display: none; }
+    #listView { display: flex; }
+    #viewBtn, #filterToggle { display: inline-flex; }
+    /* בטלפון הפילטרים מקופלים כברירת מחדל, כדי שהטבלה תקבל את רוב המסך */
+    .controls { display: none; }
+    .page.filters-open .controls { display: flex; }
+    .picker { max-block-size: 40vh; }
+    .sub { display: none; }
+    .masthead { gap: 8px 14px; }
+    /* מי שמעדיף את המטריצה גם בטלפון — המתג מחזיר אותה, עם גלילה אופקית */
+    .page.view-table .frame { display: block; }
+    .page.view-table #listView { display: none; }
+
+    /* בתצוגת הרשימה הדף נגלל רגיל — אין טבלה שתחזיק את הגלילה */
+    .page:not(.view-table) { block-size: auto; overflow: visible; }
+    .page:not(.view-table) .shell { flex: 0 1 auto; }
+    footer.note { font-size: 11px; padding-block-start: 8px; }
+    .syllabus-note { display: none; }
+    footer.note code { font-size: 10.5px; }
+
+    /* ראש הדף מתקצר כדי שהשאלות יהיו קרובות לראש המסך */
+    .shell { gap: 14px; }
+    .meter-graph { display: none; }
+    .meter { padding: 12px 14px; gap: 6px 16px; }
+    .meter-nums .big { font-size: 24px; }
+    .sub { font-size: 13.5px; }
+    .controls { gap: 6px; }
+    .row { gap: 6px 12px; }
+    .chip { font-size: 12.5px; padding: 4px 10px; }
+    .chip.part { font-size: 11.5px; padding: 4px 9px; }
+    .glabel { font-size: 9.5px; letter-spacing: .08em; }
+    .search { inline-size: 100%; }
+    .lt-head { position: sticky; top: 0; z-index: 2; background: var(--bg); padding-block: 6px; }
+    /* יעד נגיעה נוח — בכל מקרה כל הכרטיס לחיץ, כי הוא label */
+    .card { padding: 11px 12px; }
+    .card input { inline-size: 20px; block-size: 20px; }
+    .q-title { font-size: 13.5px; }
+    .drawer { inline-size: 100vw; }
+    .drawer-head { padding: 12px 14px 10px; }
+    .drawer-body { padding: 14px 14px 32px; }
+  }
+
+  footer.note {
+    color: var(--faint); font-size: 12px; border-block-start: 1px solid var(--line);
+    padding-block-start: 10px; display: flex; flex-wrap: wrap; gap: 4px 20px; justify-content: space-between;
+    flex: 0 0 auto;
+  }
+  footer.note code { font-family: var(--mono); font-size: 11.5px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media (max-width: 720px) {
+    .page { padding: 16px 10px 12px; }
+    /* עמודת הנושא מצטמצמת כדי שיישאר רוחב אמיתי לעמודת השבוע */
+    thead th.corner, tbody th { min-inline-size: 116px; inline-size: 116px; padding: 9px; }
+    thead th:not(.corner) { min-inline-size: 214px; inline-size: 214px; }
+    .topic { font-size: 12.5px; }
+    .col-week { font-size: 13px; }
+    .frame { max-block-size: 74vh; }
+  }
+</style>
+
+<div class="page">
+<div class="shell">
+
+  <header class="masthead">
+    <div>
+      <div class="eyebrow">__EYEBROW__</div>
+      <h1>__H1__</h1>
+      <p class="sub">כל תרגילי הסילבוס מ<b>__UNIT1__ __WEEKSPAN__</b> — __NWEEKS__ __UNITN__, __NQ__ שאלות — ממופים אל נושאי הקורס, עם התרגיל עצמו והפתרון בתוך הדף. סמנו שאלה כדי לסמן שנפתרה; ההתקדמות נשמרת בדפדפן.</p>
+    </div>
+    <span class="group">
+      <button class="theme-btn" id="filterToggle" type="button" aria-expanded="false" aria-controls="controls">סינון</button>
+      <button class="theme-btn" id="viewBtn" type="button">תצוגת טבלה</button>
+      <button class="theme-btn" id="themeBtn" type="button">מצב תצוגה</button>
+    </span>
+  </header>
+
+  <section class="meter" aria-label="התקדמות">
+    <svg class="meter-graph __METERCLASS__" id="meterGraph" viewBox="0 0 1240 46" preserveAspectRatio="none" aria-hidden="true">
+      <defs><clipPath id="clip"><rect id="clipRect" x="1240" y="0" width="0" height="46"/></clipPath></defs>
+      <path class="track axis"  id="axisTrack"  d=""/>
+      <path class="track ticks" id="ticksTrack" d=""/>
+      <path class="track p1"    id="p1Track"    d=""/>
+      <path class="track p0"    id="p0Track"    d=""/>
+      <g clip-path="url(#clip)">
+        <path class="live axis"  id="axisLive"  d=""/>
+        <path class="live ticks" id="ticksLive" d=""/>
+        <path class="live p1"    id="p1Live"    d=""/>
+        <path class="live p0"    id="p0Live"    d=""/>
+      </g>
+    </svg>
+    <div class="meter-nums">
+      <span class="big" dir="ltr" id="doneCount">0</span>
+      <span class="of" dir="ltr">/ <span id="totalCount">0</span></span>
+      <span class="of">שאלות נפתרו</span>
+    </div>
+    <div class="meter-meta">
+      <span>סעיפים <b dir="ltr" id="partsTally">0/0</b></span>
+      <span>בכוכבית <b dir="ltr" id="starTally">0/0</b></span>
+      <span>יש פתרון <b dir="ltr" id="solTally">0/0</b></span>
+      <span>מוצג <b dir="ltr" id="visTally">0</b></span>
+      <span>בדגל <b dir="ltr" id="flagTally">0</b></span>
+    </div>
+  </section>
+
+  <section class="controls" id="controls" aria-label="סינון">
+    <div class="row">
+      <div class="group">
+        <span class="glabel">חלק</span>
+        <button class="chip part" data-part="all" aria-pressed="true" type="button">הכל</button>
+        __PARTCHIPS__
+      </div>
+      <div class="group">
+        <button class="chip" id="weekToggle" type="button" aria-expanded="false" aria-controls="weekPanel">
+          בחירת __UNITN__ · <b id="weekSummary">כל ה__UNITN__</b>
+        </button>
+      </div>
+    </div>
+    <div class="picker" id="weekPanel" hidden>
+      <div class="picker-head">
+        <span class="glabel">סמנו __UNITN__ להצגה — לחיצה מוסיפה או מורידה</span>
+        <span class="group">
+          <button class="reset" id="weekAll" type="button">סמן הכל</button>
+          <button class="reset" id="weekNone" type="button">נקה הכל</button>
+        </span>
+      </div>
+      <div id="weekRows"></div>
+    </div>
+    <div class="row">
+      <div class="group">
+        <span class="glabel">אשכול</span>
+        <button class="chip" data-band="all" aria-pressed="true" type="button">הכל</button>
+__BANDCHIPS__
+      </div>
+      <div class="group">
+        <span class="glabel">כוכבית</span>
+        <button class="chip" data-star="all" aria-pressed="true" type="button">הכל</button>
+        <button class="chip" data-star="yes" aria-pressed="false" type="button"
+          title="שאלות שמסומנות בכוכבית בסילבוס">מסומנות ★</button>
+        <button class="chip" data-star="no" aria-pressed="false" type="button">לא מסומנות</button>
+      </div>
+      <div class="group">
+        <span class="glabel">מצב</span>
+        <button class="chip" data-status="all" aria-pressed="true" type="button">הכל</button>
+        <button class="chip" data-status="todo" aria-pressed="false" type="button">לא נפתרו</button>
+        <button class="chip" data-status="done" aria-pressed="false" type="button">נפתרו</button>
+        <button class="chip flag-chip" id="flagFilter" aria-pressed="false" type="button">
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path class="flag-cloth" d="M3.6 1.7c2.4-1.1 4.7.9 7.1-.2.5-.2 1 .2 1 .7v5.3c0 .3-.2.6-.4.7-2.4 1.1-4.7-.9-7.1.2z"/>
+            <path class="flag-pole" d="M3.6 1.1v13.8"/>
+          </svg>מסומנות בדגל
+        </button>
+        <button class="chip" id="availFilter" aria-pressed="false" type="button"
+          title="מסתיר שאלות שבוטלו בסילבוס ושאלות שהתרגיל שלהן לא הועלה">רק זמינות</button>
+        <button class="chip" id="solFilter" aria-pressed="false" type="button"
+          title="מציג רק שאלות שיש להן פתרון כתוב באתר">יש פתרון</button>
+      </div>
+      <input class="search" id="search" type="search" placeholder="חיפוש בשאלות…" aria-label="חיפוש בשאלות">
+      <span class="group" style="margin-inline-start:auto">
+        <button class="reset" id="exportBtn" type="button">ייצוא התקדמות</button>
+        <button class="reset" id="importBtn" type="button">ייבוא</button>
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
+        <button class="reset" id="resetBtn" type="button">איפוס</button>
+      </span>
+    </div>
+  </section>
+
+  <div class="frame">
+    <table id="matrix">
+      <thead><tr id="headRow"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+  <div id="listView"></div>
+  <div class="none" id="noneMsg" hidden>אין שאלות שתואמות את הסינון.</div>
+
+  <footer class="note">
+    <span class="pagenote">כל כרטיס פותח את <b>התרגיל</b> ואת <b>הפתרון</b> בתוך הדף. התרגילים יושבים ב־<code>exercises/</code>, הפתרונות ב־<code>data/solutions.md</code>.</span>
+    <span class="syllabus-note">אשכולות: מצב וקיטוב &middot; אופרטורים וסיבובים &middot; המילטוניאן ודינמיקה &middot; מידע קוונטי ושזירה</span>
+  </footer>
+
+</div>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <header class="drawer-head">
+    <div>
+      <div class="drawer-eyebrow" id="drawerId"></div>
+      <h2 id="drawerTitle"></h2>
+      <div class="drawer-meta" id="drawerMeta"></div>
+    </div>
+    <span class="group">
+      <button class="theme-btn" id="drawerPrev" type="button">הקודמת</button>
+      <button class="theme-btn" id="drawerNext" type="button">הבאה</button>
+      <button class="theme-btn" id="drawerClose" type="button">סגירה</button>
+    </span>
+  </header>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script>
+const U1 = __UNIT1J__, UN = __UNITNJ__, UEN = __UNITENJ__;
+const BANDS = __BANDS__;
+const TOPICS = __TOPICS__;
+
+const WEEKS = __WEEKS__;
+const Q = __Q__;
+const SOL = __SOL__;
+const SOLIMG = __SOLIMG__;
+const HASEX = new Set(__HASEX__);
+
+const NS = __NS__;
+const KEY = NS + '.solved.v1';
+const FLAG_KEY = NS + '.flagged.v1';
+let solved = new Set();
+/* דגל = "לחזור לזה", מימד נפרד לגמרי מ'נפתר'. שאלה יכולה להיות פתורה
+   ומסומנת בדגל בו־זמנית — בדיוק המקרה של שאלה שפתרת בקושי. */
+let flagged = new Set();
+/* כתיבה מוגנת: בגלישה פרטית או כשהאחסון חסום setItem זורק,
+   ובלי העטיפה הזאת סימון בודד היה מפיל את שאר הפעולה. */
+function store(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) {}
+}
+function loadRaw(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function load(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; }
+}
+solved = new Set(load(KEY));
+flagged = new Set(load(FLAG_KEY));
+const saveSolved = () => store(KEY, JSON.stringify([...solved]));
+const saveFlags  = () => store(FLAG_KEY, JSON.stringify([...flagged]));
+
+const filters = { band:'all', star:'all', status:'all', text:'', flagOnly:false, availOnly:false, solOnly:false };
+/* מקור אמת יחיד לאילו שבועות מוצגים. צ'יפ החלק הוא קיצור דרך שמסמן את כל שבועותיו. */
+const selWeeks = new Set(WEEKS.map(w => w.id));
+const el = s => document.querySelector(s);
+const TMAP = Object.fromEntries(TOPICS.map(t => [t.id, t]));
+const WMAP = Object.fromEntries(WEEKS.map(w => [w.id, w]));
+const QMAP = Object.fromEntries(Q.map(q => [q.id, q]));
+const bandOf = tid => TMAP[tid].band;
+const topicName = tid => TMAP[tid].name;
+/* לשאלה יש פתרון אם יש לה טקסט כתוב, צילומי מסך, או שניהם */
+const hasText = id => Object.prototype.hasOwnProperty.call(SOL, id);
+const solImgs = id => SOLIMG[id] || [];
+const hasSol  = id => hasText(id) || solImgs(id).length > 0;
+/* שאלה "זמינה" היא כזאת שלא בוטלה ושהתרגיל שלה קיים בתיקייה */
+const isAvail = q => !q.void && !q.missing;
+
+function levelBars(n) {
+  let s = '<span class="level" aria-label="קושי ' + n + ' מתוך 5" title="דירוג קושי ' + n + '/5">';
+  for (let i = 1; i <= 5; i++) s += '<i class="' + (i <= n ? 'on' : '') + '"></i>';
+  return s + '</span>';
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* בידוד דו-כיווני. טקסט לטיני/מתמטי שיושב בתוך משפט עברי נשבר על ידי
+   אלגוריתם ה-bidi: |11⟩+|00⟩ מוצג כ-⟨00|+⟨11| — הקטים הופכים לברות.
+   כאן כל רצף כזה נעטף ב-<bdi>, שמבודד אותו בלי לכפות עליו כיוון.
+   העיטוף נעשה על רצפים שלמים ולא על מילים בודדות, אחרת סימן + שבין
+   שני ביטויים היה שובר את הרצף לשניים ומחזיר את אותה בעיה. */
+const HEB = /[֐-׿]/;
+/* התו שמסמן "זה ביטוי ולא פיסוק" — לטינית, ספרה, יוונית, או סימן קוונטי */
+const LTRSIG = /[A-Za-z0-9Ͱ-Ͽ←-⇿⟨⟩|⊗°]/;
+const PLACEHOLDER = /^@@M\d+@@$/;
+
+function bidi(escaped) {
+  const toks = escaped.split(/(\s+)/);
+  const kind = toks.map(t => {
+    if (/^\s+$/.test(t)) return 'sp';
+    if (PLACEHOLDER.test(t)) return 'brk';   // נוסחה מרונדרת — כבר מבודדת בעצמה
+    if (HEB.test(t)) return 'heb';
+    return LTRSIG.test(t) ? 'ltr' : 'neu';   // neu = פיסוק בלבד: + − = · , —
+  });
+
+  let out = '', i = 0;
+  while (i < toks.length) {
+    if (kind[i] !== 'ltr') { out += toks[i++]; continue; }
+    // רצף מקסימלי של ltr/neu/רווחים, שנגזם בקצוות עד לאסימון ltr אמיתי
+    let j = i, last = i;
+    while (j < toks.length && (kind[j] === 'ltr' || kind[j] === 'neu' || kind[j] === 'sp')) {
+      if (kind[j] === 'ltr') last = j;
+      j++;
+    }
+    out += '<bdi>' + toks.slice(i, last + 1).join('') + '</bdi>';
+    out += toks.slice(last + 1, j).join('');
+    i = j;
+  }
+  return out;
+}
+/* קיצור: בריחה מ-HTML ואז בידוד — מה שצריך כמעט בכל מקום שמציג טקסט חופשי */
+const escb = s => bidi(esc(s));
+
+function weekVisible(w) { return selWeeks.has(w.id); }
+function weekShort(w) { return U1 + ' ' + w.n; }
+
+function matches(q) {
+  if (!weekVisible(WMAP[q.week])) return false;
+  if (filters.band !== 'all' && bandOf(q.topic) !== filters.band) return false;
+  if (filters.star === 'yes' && !q.star) return false;
+  if (filters.star === 'no' && q.star) return false;
+  const done = solved.has(q.id);
+  if (filters.status === 'done' && !done) return false;
+  if (filters.status === 'todo' && done) return false;
+  if (filters.flagOnly && !flagged.has(q.id)) return false;
+  if (filters.availOnly && !isAvail(q)) return false;
+  if (filters.solOnly && !hasSol(q.id)) return false;
+  if (filters.text) {
+    const hay = (q.id + ' ' + q.title + ' ' + q.desc + ' ' + topicName(q.topic) + ' ' +
+      (q.also || []).map(topicName).join(' ') + ' ' + (SOL[q.id] || '')).toLowerCase();
+    if (!hay.includes(filters.text)) return false;
+  }
+  return true;
+}
+
+function buildHead() {
+  el('#headRow').innerHTML = '<th class="corner"><div class="corner-title">נושא / ' + U1 + '</div></th>' +
+    WEEKS.map(w =>
+      '<th data-weekcol="' + w.id + '">' +
+        '<div class="col-part" dir="ltr">' + w.part + '</div>' +
+        '<div class="col-week">' + U1 + ' ' + w.n + '</div>' +
+        '<div class="col-en">' + w.en + '</div>' +
+        '<div class="col-heb">' + w.heb + '</div>' +
+        '<div class="col-tally" dir="ltr" data-tally="' + w.id + '">0/0</div>' +
+        '<div class="col-bar"><i data-bar="' + w.id + '" style="width:0%"></i></div>' +
+      '</th>').join('');
+}
+
+function cardHTML(q, withWeek) {
+  const also = (q.also || []).map(topicName).join(' · ');
+  const w = WMAP[q.week];
+  const sol = hasSol(q.id);
+  return '<label class="card' + (q.void ? ' is-void' : '') + (q.missing ? ' is-missing' : '') +
+      '" data-q="' + q.id + '"' +
+      (withWeek ? '' : ' title="' + esc(q.desc) + '"') + '>' +
+    '<input type="checkbox" ' + (solved.has(q.id) ? 'checked' : '') +
+      (q.void ? ' disabled' : '') + ' aria-label="שאלה ' + q.id + ' נפתרה">' +
+    '<span>' +
+      (withWeek ? '<span class="q-week">' + U1 + ' ' + w.n + ' · ' + w.heb + '</span>' : '') +
+      '<span class="q-top">' +
+        '<span class="q-no">' + q.id + '</span>' +
+        (q.star ? '<span class="q-star" title="מסומנת בכוכבית בסילבוס">★</span>' : '') +
+        (q.parts ? '<span class="q-parts">' + q.parts + ' סעיפים</span>' : '') +
+      '</span>' +
+      '<span class="q-title">' + escb(q.title) + '</span>' +
+      (withWeek ? '<span class="q-desc">' + escb(q.desc) + '</span>' : '') +
+      '<span class="q-foot">' + levelBars(q.level) +
+        /* שאלה שבוטלה עדיין נפתחת אם קיים לה פתרון — היא אינה מטלה,
+           אבל החומר שלה זמין לקריאה. */
+        (q.void && !sol ? '' :
+          '<button type="button" class="q-open' + (sol ? ' has-sol' : '') + '" data-open="' + q.id + '">' +
+            (q.void ? 'פתרון' : sol ? 'תרגיל ופתרון' : 'תרגיל') + '</button>') +
+        (q.void ? '<span class="q-tag" title="השאלה בוטלה בסילבוס">בוטלה</span>' : '') +
+        /* התג נגזר מקיום הקובץ בפועל ולא מדגל בנתונים, כדי שיעלם מעצמו
+           ברגע שהתרגיל יתווסף לתיקייה. */
+        (!q.void && !HASEX.has(q.id)
+          ? '<span class="q-tag warn" title="התרגיל לא הועלה">חסר תרגיל</span>' : '') +
+        (q.lecture ? '<span class="q-tag" title="בסילבוס מסומן ״פתרון בהרצאה״ — ' +
+          'יש פתרון גם בהקלטת ההרצאה">גם בהקלטה</span>' : '') +
+        (also ? '<span class="q-also">גם: ' + also + '</span>' : '') +
+      '</span>' +
+    '</span>' +
+    flagBtn(q.id) +
+    '</label>';
+}
+
+/* כפתור בתוך label אינו מפעיל את התיבה — button הוא interactive content,
+   ולכן הלחיצה לא נספרת כלחיצה על ה-label. */
+function flagBtn(id) {
+  const on = flagged.has(id);
+  return '<button type="button" class="flag" data-flag="' + id + '" aria-pressed="' + on + '" ' +
+    'title="' + (on ? 'להסיר את הדגל' : 'לסמן בדגל — לחזור לשאלה הזאת') + '" ' +
+    'aria-label="' + (on ? 'מסומנת בדגל' : 'סמנו בדגל') + '">' +
+    '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+      '<path class="flag-cloth" d="M3.6 1.7c2.4-1.1 4.7.9 7.1-.2.5-.2 1 .2 1 .7v5.3c0 .3-.2.6-.4.7-2.4 1.1-4.7-.9-7.1.2z"/>' +
+      '<path class="flag-pole" d="M3.6 1.1v13.8"/>' +
+    '</svg></button>';
+}
+
+function buildBody() {
+  let html = '';
+  for (const band of BANDS) {
+    html += '<tr class="band" data-bandrow="' + band.id + '"><th><div class="band-name"><span class="tag">' + band.tag +
+      '</span></div></th><td colspan="' + WEEKS.length + '"><div class="band-name">' +
+      '<span class="band-heb">' + band.heb + '</span><span class="rule"></span></div></td></tr>';
+    for (const t of TOPICS.filter(t => t.band === band.id)) {
+      html += '<tr data-band="' + band.id + '" data-topic="' + t.id + '">' +
+        '<th><div class="topic">' + t.name + '</div><div class="topic-meta" dir="ltr" data-topicmeta="' + t.id + '"></div></th>';
+      for (const w of WEEKS) {
+        const list = Q.filter(q => q.week === w.id && q.topic === t.id);
+        html += '<td data-cellweek="' + w.id + '">' + (list.length
+          ? '<div class="stack">' + list.map(q => cardHTML(q)).join('') + '</div>'
+          : '<div class="empty">—</div>') + '</td>';
+      }
+      html += '</tr>';
+    }
+  }
+  el('#body').innerHTML = html;
+}
+
+/* תצוגת הרשימה למסכים צרים: מקובצת לפי נושא, לפי סדר הקורס */
+function buildList() {
+  let html = '';
+  for (const band of BANDS) {
+    html += '<div class="lt-band" data-listband="' + band.id + '">' +
+      '<span>' + band.tag + '</span><span class="rule"></span></div>';
+    for (const t of TOPICS.filter(t => t.band === band.id)) {
+      const list = Q.filter(q => q.topic === t.id);
+      if (!list.length) continue;
+      html += '<section class="lt-group" data-listtopic="' + t.id + '" data-band="' + band.id + '">' +
+        '<h2 class="lt-head"><span class="lt-name">' + t.name + '</span>' +
+        '<span class="lt-count" dir="ltr" data-listcount="' + t.id + '"></span></h2>' +
+        '<div class="stack">' + list.map(q => cardHTML(q, true)).join('') + '</div></section>';
+    }
+  }
+  el('#listView').innerHTML = html;
+}
+
+/* ---------- גרף ההתקדמות ----------
+   כל הווריאנטים מייצרים את אותם ארבעה נתיבים — ציר, סימוני סולם, עקום ראשי
+   ועקום משני — ולכן מנגנון המילוי לפי ההתקדמות זהה לכולם ולא יודע איזה
+   גרף נבחר. הבחירה היא שורה אחת ב-course.json. */
+const METER = __METER__;
+
+function buildMeter() {
+  const W = 1240, TOP = 6, BOT = 40, H = BOT - TOP, MID = (TOP + BOT) / 2;
+  const f = (x, y) => x.toFixed(1) + ' ' + y.toFixed(1);
+  const curveOf = fn => {
+    let d = '';
+    for (let x = 0; x <= W; x += 4) d += (x ? ' L ' : 'M ') + f(x, fn(x));
+    return d;
+  };
+  let p0 = '', p1 = '', ticks = '', axisY = BOT;
+
+  if (METER === 'rabi') {
+    /* P(t) של מערכת דו-מפלסית: cos² להישאר, sin² לעבור. הם נחתכים באמצע
+       כי סכומם 1, וזה מה שנותן את שני הגלים הקלועים. */
+    const K = Math.PI * 2.5 / W, c = x => Math.cos(K * x) ** 2;
+    p0 = curveOf(x => BOT - H * c(x));
+    p1 = curveOf(x => BOT - H * (1 - c(x)));
+    const step = W / 20;
+    for (let x = step / 2; x <= W; x += step) ticks += 'M ' + f(x, BOT) + ' L ' + f(x, BOT - H * c(x)) + ' ';
+
+  } else if (METER === 'wave') {
+    /* גל אלקטרומגנטי מישורי: E במישור האנכי, B בהטלה אלכסונית כדי לרמוז
+       על המישור הניצב בתוך רצועה בגובה 46 פיקסלים. */
+    axisY = MID;
+    const K = 2 * Math.PI * 2.6 / W, AE = 15, AB = 14, BX = -0.42, BY = 0.68;
+    p0 = curveOf(x => MID - AE * Math.sin(K * x));
+    for (let x = 0; x <= W; x += 4) {
+      const sn = Math.sin(K * x);
+      p1 += (x ? ' L ' : 'M ') + f(x + BX * AB * sn, MID + BY * AB * sn);
+    }
+    const step = W / 26;
+    for (let x = step / 2; x <= W; x += step) {
+      const sn = Math.sin(K * x);
+      ticks += 'M ' + f(x, MID) + ' L ' + f(x, MID - AE * sn) + ' ';
+      ticks += 'M ' + f(x, MID) + ' L ' + f(x + BX * AB * sn, MID + BY * AB * sn) + ' ';
+    }
+
+  } else if (METER === 'pulse') {
+    /* אות ריבועי — שעון דיגיטלי */
+    axisY = MID;
+    const n = 7, per = W / n, hi = TOP + 2, lo = BOT - 2;
+    p0 = 'M ' + f(0, lo);
+    for (let i = 0; i < n; i++) {
+      const a = i * per, b = a + per / 2, e = a + per;
+      p0 += ' L ' + f(a, lo) + ' L ' + f(a, hi) + ' L ' + f(b, hi) + ' L ' + f(b, lo) + ' L ' + f(e, lo);
+    }
+    for (let i = 0; i <= n; i++) ticks += 'M ' + f(i * per, MID - 6) + ' L ' + f(i * per, MID + 6) + ' ';
+
+  } else if (METER === 'bars') {
+    /* עמודות בדידות — ניטרלי, מתאים לכל מקצוע */
+    const n = 30, gap = 3, bw = (W - gap * (n - 1)) / n;
+    for (let i = 0; i < n; i++) {
+      const x = i * (bw + gap);
+      const h = H * (0.22 + 0.78 * Math.abs(Math.sin(i * 0.7 + 0.4)));
+      p0 += 'M ' + f(x, BOT) + ' L ' + f(x, BOT - h) + ' L ' + f(x + bw, BOT - h) + ' L ' + f(x + bw, BOT) + ' ';
+    }
+
+  } else {
+    /* curve — תנודה דועכת שמתכנסת, כמו סדרה מתכנסת */
+    axisY = MID;
+    const K = 2 * Math.PI * 3.2 / W, A = 15;
+    const env = x => A * Math.exp(-2.6 * x / W);
+    p0 = curveOf(x => MID - env(x) * Math.cos(K * x));
+    p1 = curveOf(x => MID - env(x));
+    const step = W / 22;
+    for (let x = step / 2; x <= W; x += step) {
+      ticks += 'M ' + f(x, MID) + ' L ' + f(x, MID - env(x) * Math.cos(K * x)) + ' ';
+    }
+  }
+
+  const ax = 'M ' + f(0, axisY) + ' L ' + f(W, axisY);
+  [['#axisTrack', ax], ['#axisLive', ax], ['#ticksTrack', ticks], ['#ticksLive', ticks],
+   ['#p1Track', p1], ['#p1Live', p1], ['#p0Track', p0], ['#p0Live', p0]]
+    .forEach(([sel, d]) => el(sel).setAttribute('d', d));
+}
+
+function refresh() {
+  const perWeek = {}, perTopic = {};
+  WEEKS.forEach(w => perWeek[w.id] = { d:0, t:0 });
+  TOPICS.forEach(t => perTopic[t.id] = { d:0, t:0 });
+
+  const shown = Q.filter(matches);
+  const visible = shown.length;
+  const showIds = new Set(shown.map(q => q.id));
+  shown.forEach(q => {
+    const done = solved.has(q.id) ? 1 : 0;
+    perWeek[q.week].t++; perWeek[q.week].d += done;
+    perTopic[q.topic].t++; perTopic[q.topic].d += done;
+  });
+  // אותה שאלה מופיעה גם בטבלה וגם ברשימה — שני המופעים מתעדכנים יחד
+  document.querySelectorAll('.card').forEach(card => {
+    card.hidden = !showIds.has(card.dataset.q);
+  });
+
+  // הסתרת עמודות שלמות של שבועות שסוננו החוצה
+  WEEKS.forEach(w => {
+    const on = weekVisible(w);
+    const h = document.querySelector('[data-weekcol="' + w.id + '"]');
+    if (h) h.hidden = !on;
+    document.querySelectorAll('[data-cellweek="' + w.id + '"]').forEach(td => td.hidden = !on);
+  });
+  const shownCols = WEEKS.filter(weekVisible).length;
+  document.querySelectorAll('tr.band > td').forEach(td => td.colSpan = shownCols);
+
+  document.querySelectorAll('tr[data-topic]').forEach(tr => {
+    const c = perTopic[tr.dataset.topic];
+    tr.hidden = c.t === 0;
+    tr.querySelector('[data-topicmeta]').textContent = c.t ? c.d + '/' + c.t : '';
+  });
+  document.querySelectorAll('tr.band').forEach(tr => {
+    let next = tr.nextElementSibling, any = false;
+    while (next && !next.classList.contains('band')) { if (!next.hidden) any = true; next = next.nextElementSibling; }
+    tr.hidden = !any;
+  });
+
+  // תצוגת הרשימה
+  document.querySelectorAll('[data-listtopic]').forEach(sec => {
+    const c = perTopic[sec.dataset.listtopic];
+    sec.hidden = c.t === 0;
+    sec.querySelector('[data-listcount]').textContent = c.t ? c.d + '/' + c.t : '';
+  });
+  document.querySelectorAll('[data-listband]').forEach(head => {
+    const any = [...document.querySelectorAll('[data-listtopic][data-band="' + head.dataset.listband + '"]')]
+      .some(s => !s.hidden);
+    head.hidden = !any;
+  });
+  WEEKS.forEach(w => {
+    const c = perWeek[w.id];
+    const t = document.querySelector('[data-tally="' + w.id + '"]');
+    if (t) t.textContent = c.d + '/' + c.t;
+    const b = document.querySelector('[data-bar="' + w.id + '"]');
+    if (b) b.style.width = (c.t ? c.d / c.t * 100 : 0) + '%';
+  });
+
+  /* המונים הגדולים סופרים רק שאלות פעילות — שאלה שבוטלה בסילבוס
+     אינה מטלה, ואין טעם שתופיע במכנה של ההתקדמות. */
+  const pool = Q.filter(q => weekVisible(WMAP[q.week]) && !q.void);
+  const doneQ = pool.filter(q => solved.has(q.id));
+  const partsT = pool.reduce((s,q) => s + (q.parts || 0), 0);
+  const partsD = doneQ.reduce((s,q) => s + (q.parts || 0), 0);
+  const st = pool.filter(q => q.star);
+  const withSol = pool.filter(q => hasSol(q.id));
+  el('#doneCount').textContent = doneQ.length;
+  el('#totalCount').textContent = pool.length;
+  el('#partsTally').textContent = partsD + '/' + partsT;
+  el('#starTally').textContent = st.filter(q => solved.has(q.id)).length + '/' + st.length;
+  el('#solTally').textContent = withSol.length + '/' + pool.length;
+  el('#visTally').textContent = visible;
+  el('#flagTally').textContent = pool.filter(q => flagged.has(q.id)).length;
+  /* המילוי מתחיל מימין, כמו כיוון הקריאה. חלון החיתוך נצמד לקצה הימני
+     ומתרחב שמאלה, ולכן x זז ולא רק width. */
+  const fillW = pool.length ? doneQ.length / pool.length * 1240 : 0;
+  el('#clipRect').setAttribute('width', fillW.toFixed(1));
+  el('#clipRect').setAttribute('x', (1240 - fillW).toFixed(1));
+  el('#noneMsg').hidden = visible > 0;
+}
+
+buildHead(); buildBody(); buildList(); buildWeekPicker(); buildMeter(); syncWeekChips(); refresh();
+
+/* אותה שאלה קיימת בשתי התצוגות — סימון באחת מסמן גם בשנייה */
+function onToggle(e) {
+  const box = e.target.closest('input[type=checkbox]');
+  if (!box) return;
+  const id = box.closest('.card').dataset.q;
+  box.checked ? solved.add(id) : solved.delete(id);
+  saveSolved();
+  document.querySelectorAll('.card').forEach(c => {
+    if (c.dataset.q === id) c.querySelector('input').checked = box.checked;
+  });
+  refresh();
+}
+el('#body').addEventListener('change', onToggle);
+el('#listView').addEventListener('change', onToggle);
+
+/* הדגל — לחיצה אחת מדליקה/מכבה, ושני המופעים של השאלה מתעדכנים */
+function onFlag(e) {
+  const btn = e.target.closest('.flag');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const id = btn.dataset.flag;
+  const on = !flagged.has(id);
+  on ? flagged.add(id) : flagged.delete(id);
+  saveFlags();
+  document.querySelectorAll('.flag[data-flag="' + id + '"]').forEach(b => {
+    b.setAttribute('aria-pressed', String(on));
+    b.title = on ? 'להסיר את הדגל' : 'לסמן בדגל — לחזור לשאלה הזאת';
+    b.setAttribute('aria-label', on ? 'מסומנת בדגל' : 'סמנו בדגל');
+  });
+  refresh();
+}
+el('#body').addEventListener('click', onFlag);
+el('#listView').addEventListener('click', onFlag);
+
+/* ---------- המגירה: התרגיל והפתרון ---------- */
+
+/* מרנדר markdown מצומצם עם נוסחאות KaTeX. סדר הפעולות חשוב: קודם
+   מוציאים את הנוסחאות החוצה לאסימונים, ורק אחר כך בורחים מ-HTML —
+   אחרת \\ ו-< שבתוך ה-LaTeX היו נהרסים. */
+function mdToHtml(src) {
+  const math = [];
+  let s = src.replace(/\r\n/g, '\n');
+
+  const stash = (tex, display) => '@@M' + (math.push({ tex, display }) - 1) + '@@';
+  s = s.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => stash(tex, true));
+  s = s.replace(/(?<!\\)\$([^\n$]+?)(?<!\\)\$/g, (_, tex) => stash(tex, false));
+
+  s = esc(s);
+
+  // בלוקים: כותרות, קווים מפרידים, רשימות, פסקאות
+  const lines = s.split('\n');
+  let html = '', list = null, para = [];
+  const flushPara = () => { if (para.length) { html += '<p>' + para.join(' ') + '</p>'; para = []; } };
+  const flushList = () => { if (list) { html += '</' + list + '>'; list = null; } };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { flushPara(); flushList(); continue; }
+    let m;
+    if ((m = line.match(/^####?\s+(.*)$/))) {
+      flushPara(); flushList();
+      html += line.startsWith('####') ? '<h4>' + m[1] + '</h4>' : '<h3>' + m[1] + '</h3>';
+    } else if (/^(-{3,}|\*{3,})$/.test(line)) {
+      flushPara(); flushList(); html += '<hr>';
+    } else if ((m = line.match(/^[-*]\s+(.*)$/))) {
+      flushPara();
+      if (list !== 'ul') { flushList(); html += '<ul>'; list = 'ul'; }
+      html += '<li>' + m[1] + '</li>';
+    } else if ((m = line.match(/^\d+[.)]\s+(.*)$/))) {
+      flushPara();
+      if (list !== 'ol') { flushList(); html += '<ol>'; list = 'ol'; }
+      html += '<li>' + m[1] + '</li>';
+    } else {
+      flushList(); para.push(line);
+    }
+  }
+  flushPara(); flushList();
+
+  // inline: מודגש, נטוי, קוד
+  html = html
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[\s(])_([^_]+)_(?=[\s.,;:)]|$)/g, '$1<em>$2</em>');
+
+  /* בידוד דו-כיווני על תוכן הטקסט בלבד — מה שבתוך תגית נשאר כמו שהוא.
+     נעשה לפני החזרת הנוסחאות, ולכן האסימונים @@M..@@ עדיין במקומם
+     ומסומנים כשובר רצף כדי שלא ייעטפו בעצמם. */
+  html = html.replace(/>([^<]+)</g, (m, txt) => '>' + bidi(txt) + '<');
+
+  // ואז מחזירים את הנוסחאות, מרונדרות ומבודדות מהעברית
+  return html.replace(/@@M(\d+)@@/g, (_, i) => renderMath(math[+i]));
+}
+
+function renderMath({ tex, display }) {
+  const cls = display ? 'math-block' : 'math-inline';
+  if (typeof katex === 'undefined') {
+    // KaTeX לא נטען (אין רשת) — מציגים את המקור כדי שלא ייעלם תוכן
+    return '<span class="math-err">' + esc(tex) + '</span>';
+  }
+  try {
+    const inner = katex.renderToString(tex, { displayMode: display, throwOnError: true });
+    return '<span class="' + cls + '">' + inner + '</span>';
+  } catch (e) {
+    return '<span class="math-err">' + esc(tex) + '</span>';
+  }
+}
+
+const drawer = el('#drawer'), scrim = el('#scrim');
+let openId = null, lastFocus = null;
+/* סדר המעבר במגירה הוא סדר הקורס. שאלה שבוטלה נכללת רק אם יש לה פתרון,
+   כלומר רק אם יש בה מה לקרוא. */
+const NAV = Q.filter(q => !q.void || hasSol(q.id)).map(q => q.id);
+
+function drawerHTML(q) {
+  const sol = SOL[q.id];
+  let h = '';
+  if (HASEX.has(q.id)) {
+    h += '<div class="sec-label"><span>התרגיל</span><span class="rule"></span></div>' +
+      '<div class="shot-bar">' +
+        '<button class="reset" id="zoomBtn" type="button">גודל מלא</button>' +
+        '<a class="reset" href="exercises/' + q.id + '.png" target="_blank" rel="noopener" ' +
+          'style="text-decoration:none">פתיחה בלשונית</a>' +
+      '</div>' +
+      '<div class="shot" id="shot"><img src="exercises/' + q.id + '.png" alt="תרגיל ' + q.id + ' — ' + esc(q.title) + '"></div>';
+  } else {
+    h += '<div class="sec-label"><span>התרגיל</span><span class="rule"></span></div>' +
+      '<div class="sol-none">התרגיל לא הועלה' +
+      (q.lecture ? '. בסילבוס מסומן ״פתרון בהרצאה״.' : '.') +
+      '<br>כדי להוסיף: <code>exercises/' + q.id + '.png</code></div><div style="height:22px"></div>';
+  }
+  const imgs = solImgs(q.id);
+  h += '<div class="sec-label"><span>הפתרון</span><span class="rule"></span></div>';
+  if (q.lecture) {
+    h += '<p class="sol-note">בסילבוס השאלה מסומנת <b>״פתרון בהרצאה״</b> — ' +
+      'יש לה פתרון גם בהקלטת ההרצאה של ' + U1 + ' ' + WMAP[q.week].n + '.</p>';
+  }
+  if (imgs.length) {
+    h += '<div class="shot-bar">' +
+        '<button class="reset" id="zoomSol" type="button">גודל מלא</button>' +
+        (imgs.length > 1 ? '<span class="q-parts">' + imgs.length + ' עמודים</span>' : '') +
+      '</div>';
+    /* כל עמודי הפתרון יושבים במסגרת אחת ונצמדים זה לזה, כך שפתרון שנפרס
+       על כמה צילומי מסך נקרא כמסמך אחד רציף ולא כרצף תיבות נפרדות.
+       בלי loading="lazy": המגירה מציגה שאלה אחת בכל רגע, וטעינה עצלה בתוך
+       מיכל נגלל נוטה להיתקע ולהשאיר את הפתרון ריק. */
+    h += '<div class="shot sol-shot">' + imgs.map(src =>
+      '<img src="' + src + '" alt="פתרון ' + q.id + '">'
+    ).join('') + '</div>';
+  }
+  if (sol) h += '<div class="sol">' + mdToHtml(sol) + '</div>';
+  if (!sol && !imgs.length) {
+    h += '<div class="sol-none">טרם נכתב פתרון.<br>' +
+      'צילום מסך: <code>solutions/' + q.id + '.png</code> (או <code>' + q.id + '-1.png</code>, <code>-2</code>… לכמה עמודים)<br>' +
+      'טקסט: <code>data/solutions.md</code> תחת הכותרת <code>## ' + q.id + '</code></div>';
+  }
+  return h;
+}
+
+function openDrawer(id) {
+  const q = QMAP[id];
+  if (!q) return;
+  if (!openId) lastFocus = document.activeElement;
+  openId = id;
+  const w = WMAP[q.week];
+  el('#drawerId').textContent = q.id + '  ·  ' + w.part + '  ·  ' + UEN + ' ' + w.n;
+  el('#drawerTitle').textContent = q.title;
+  el('#drawerMeta').innerHTML =
+    '<span>' + topicName(q.topic) + '</span>' +
+    (q.parts ? '<span>' + q.parts + ' סעיפים</span>' : '') +
+    '<span>קושי ' + q.level + '/5</span>' +
+    (q.star ? '<span style="color:var(--star)">★ מסומנת בסילבוס</span>' : '') +
+    (q.void ? '<span class="q-tag warn">בוטלה בסילבוס — לא נדרשת למבחן</span>' : '');
+  el('#drawerBody').innerHTML =
+    '<p class="drawer-lead">' + escb(q.desc) + '</p>' + drawerHTML(q);
+  el('#drawerBody').scrollTop = 0;
+
+  const i = NAV.indexOf(id);
+  el('#drawerPrev').disabled = i <= 0;
+  el('#drawerNext').disabled = i < 0 || i >= NAV.length - 1;
+
+  /* צילומי המסך רחבים; "גודל מלא" מוציא אותם מהתאמת הרוחב ומאפשר
+     גלילה אופקית, כי הקטנה עד לרוחב המגירה הופכת נוסחאות ללא קריאות. */
+  const bindZoom = (btnSel, shotSel) => {
+    const btn = el(btnSel);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const shots = document.querySelectorAll(shotSel);
+      const full = !shots[0].classList.contains('full');
+      shots.forEach(s => s.classList.toggle('full', full));
+      btn.textContent = full ? 'התאמה לרוחב' : 'גודל מלא';
+    });
+  };
+  bindZoom('#zoomBtn', '#shot');
+  bindZoom('#zoomSol', '.sol-shot');
+
+  drawer.hidden = false; scrim.hidden = false;
+  document.body.style.overflow = 'hidden';
+  el('#drawerClose').focus();
+}
+
+function closeDrawer() {
+  drawer.hidden = true; scrim.hidden = true;
+  document.body.style.overflow = '';
+  openId = null;
+  if (lastFocus && lastFocus.isConnected) lastFocus.focus();
+}
+
+function step(d) {
+  const i = NAV.indexOf(openId);
+  if (i < 0) return;
+  const j = i + d;
+  if (j >= 0 && j < NAV.length) openDrawer(NAV[j]);
+}
+
+function onOpen(e) {
+  const btn = e.target.closest('[data-open]');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  openDrawer(btn.dataset.open);
+}
+el('#body').addEventListener('click', onOpen);
+el('#listView').addEventListener('click', onOpen);
+
+el('#drawerClose').addEventListener('click', closeDrawer);
+scrim.addEventListener('click', closeDrawer);
+el('#drawerPrev').addEventListener('click', () => step(-1));
+el('#drawerNext').addEventListener('click', () => step(1));
+document.addEventListener('keydown', e => {
+  if (drawer.hidden) return;
+  if (e.key === 'Escape') { closeDrawer(); return; }
+  /* בעברית חץ ימינה הוא "אחורה". הכיוון כאן תואם את כיוון הקריאה. */
+  if (e.key === 'ArrowRight') step(-1);
+  if (e.key === 'ArrowLeft') step(1);
+});
+
+/* ---------- הפילטרים ---------- */
+el('#flagFilter').addEventListener('click', () => {
+  filters.flagOnly = !filters.flagOnly;
+  el('#flagFilter').setAttribute('aria-pressed', String(filters.flagOnly));
+  refresh();
+});
+
+el('#availFilter').addEventListener('click', () => {
+  filters.availOnly = !filters.availOnly;
+  el('#availFilter').setAttribute('aria-pressed', String(filters.availOnly));
+  refresh();
+});
+
+el('#solFilter').addEventListener('click', () => {
+  filters.solOnly = !filters.solOnly;
+  el('#solFilter').setAttribute('aria-pressed', String(filters.solOnly));
+  refresh();
+});
+
+document.querySelectorAll('.chip[data-band], .chip[data-star], .chip[data-status]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const key = ['band','star','status'].find(k => chip.dataset[k] !== undefined);
+    filters[key] = chip.dataset[key];
+    document.querySelectorAll('.chip[data-' + key + ']').forEach(c =>
+      c.setAttribute('aria-pressed', String(c.dataset[key] === filters[key])));
+    refresh();
+  });
+});
+
+/* ---------- בחירת שבועות ---------- */
+function buildWeekPicker() {
+  const parts = [...new Set(WEEKS.map(w => w.part))];
+  el('#weekRows').innerHTML = parts.map(p =>
+    '<div class="picker-row"><span class="picker-part" dir="ltr">' + p + '</span>' +
+    '<span class="picker-chips">' +
+    WEEKS.filter(w => w.part === p).map(w =>
+      '<button class="chip week" type="button" data-week="' + w.id + '" aria-pressed="true" ' +
+      'title="' + w.en + ' · ' + w.heb + '">' + weekShort(w) + '</button>'
+    ).join('') + '</span></div>'
+  ).join('');
+}
+
+function syncWeekChips() {
+  const n = selWeeks.size, total = WEEKS.length;
+  // איזה צ'יפ חלק מודגש: "הכל" כשהכול נבחר, חלק מסוים אם הבחירה היא בדיוק כל שבועותיו
+  let activePart = '';
+  if (n === total) activePart = 'all';
+  else if (n) {
+    const ps = [...new Set(WEEKS.filter(w => selWeeks.has(w.id)).map(w => w.part))];
+    if (ps.length === 1 && WEEKS.filter(w => w.part === ps[0]).length === n) activePart = ps[0];
+  }
+  document.querySelectorAll('.chip[data-part]').forEach(c =>
+    c.setAttribute('aria-pressed', String(c.dataset.part === activePart)));
+  document.querySelectorAll('.chip[data-week]').forEach(c =>
+    c.setAttribute('aria-pressed', String(selWeeks.has(c.dataset.week))));
+  el('#weekSummary').textContent =
+    n === total ? 'כל ה' + UN : n === 0 ? 'לא נבחר ' + U1 : n === 1 ? U1 + ' אחד' : n + ' ' + UN;
+}
+
+function setWeeks(ids) { selWeeks.clear(); ids.forEach(i => selWeeks.add(i)); syncWeekChips(); refresh(); }
+
+document.querySelectorAll('.chip[data-part]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const p = chip.dataset.part;
+    setWeeks(WEEKS.filter(w => p === 'all' || w.part === p).map(w => w.id));
+  });
+});
+
+el('#weekToggle').addEventListener('click', () => {
+  const panel = el('#weekPanel');
+  panel.hidden = !panel.hidden;
+  el('#weekToggle').setAttribute('aria-expanded', String(!panel.hidden));
+});
+
+el('#weekRows').addEventListener('click', e => {
+  const chip = e.target.closest('.chip[data-week]');
+  if (!chip) return;
+  const id = chip.dataset.week;
+  selWeeks.has(id) ? selWeeks.delete(id) : selWeeks.add(id);
+  syncWeekChips();
+  refresh();
+});
+
+el('#weekAll').addEventListener('click', () => setWeeks(WEEKS.map(w => w.id)));
+el('#weekNone').addEventListener('click', () => setWeeks([]));
+
+el('#search').addEventListener('input', e => { filters.text = e.target.value.trim().toLowerCase(); refresh(); });
+
+el('#resetBtn').addEventListener('click', () => {
+  if (!solved.size || confirm('לאפס את כל סימוני "נפתר"?\n\nהדגלים יישמרו.')) {
+    solved.clear();
+    store(KEY, '[]');
+    document.querySelectorAll('.card input').forEach(b => b.checked = false);
+    refresh();
+  }
+});
+
+/* ---------- קיפול הפילטרים, רלוונטי במסכים צרים ---------- */
+el('#filterToggle').addEventListener('click', () => {
+  const open = page.classList.toggle('filters-open');
+  el('#filterToggle').setAttribute('aria-expanded', String(open));
+  el('#filterToggle').textContent = open ? 'סגור סינון' : 'סינון';
+});
+
+/* ---------- מתג טבלה/רשימה, רלוונטי במסכים צרים ---------- */
+const VIEW_KEY = NS + '.view';
+const page = document.querySelector('.page');
+function applyView(v) {
+  page.classList.toggle('view-table', v === 'table');
+  el('#viewBtn').textContent = v === 'table' ? 'תצוגת רשימה' : 'תצוגת טבלה';
+}
+/* במסך צר המטריצה דורשת גלילה אופקית בכל שורה, ולכן ברירת המחדל שם
+   היא הרשימה. בחירה מפורשת של המשתמש גוברת ונשמרת. */
+applyView(loadRaw(VIEW_KEY) ||
+  (window.matchMedia('(max-width: 760px)').matches ? 'list' : 'table'));
+el('#viewBtn').addEventListener('click', () => {
+  const next = page.classList.contains('view-table') ? 'list' : 'table';
+  store(VIEW_KEY, next);
+  applyView(next);
+});
+
+/* ---------- מצב תצוגה: בהיר כברירת מחדל, הבחירה נשמרת ---------- */
+const THEME_KEY = NS + '.theme';
+const savedTheme = loadRaw(THEME_KEY);
+if (savedTheme === 'dark' || savedTheme === 'light') document.documentElement.dataset.theme = savedTheme;
+
+el('#themeBtn').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  store(THEME_KEY, next);
+});
+
+/* ---------- ייצוא וייבוא של ההתקדמות ---------- */
+function stamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+el('#exportBtn').addEventListener('click', () => {
+  const payload = {
+    app: NS,
+    version: 1,
+    exported: new Date().toISOString(),
+    total: Q.length,
+    flagged: [...flagged].sort(),
+    solved: [...solved].sort()
+  };
+  const text = JSON.stringify(payload, null, 1);
+  const a = document.createElement('a');
+  a.download = `קוונטים-התקדמות-${stamp()}.json`;
+  try {
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    a.href = url;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (e) {
+    a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(text);
+    a.click();
+  }
+});
+
+el('#importBtn').addEventListener('click', () => el('#importFile').click());
+
+el('#importFile').addEventListener('change', async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  let list, flagList;
+  try {
+    const data = JSON.parse(await file.text());
+    list = Array.isArray(data) ? data : data.solved;
+    flagList = Array.isArray(data) ? [] : (data.flagged || []);
+    if (!Array.isArray(list) || !Array.isArray(flagList)) throw new Error('no list');
+  } catch (err) {
+    alert('הקובץ אינו קובץ התקדמות תקין. צריך להיות קובץ JSON שיוצא מהאתר הזה.');
+    return;
+  }
+  const valid = new Set(Q.map(q => q.id));
+  const known = list.filter(k => valid.has(k));
+  const knownFlags = flagList.filter(k => valid.has(k));
+  const skipped = (list.length - known.length) + (flagList.length - knownFlags.length);
+  const fresh = known.filter(k => !solved.has(k)).length;
+
+  const merge = (solved.size || flagged.size)
+    ? confirm(`בקובץ ${known.length} שאלות פתורות (${fresh} חדשות עבורך) ו-${knownFlags.length} מסומנות בדגל.\n\n` +
+              'אישור = מיזוג עם מה שקיים\nביטול = החלפה מלאה')
+    : true;
+
+  if (!merge) { solved.clear(); flagged.clear(); }
+  known.forEach(k => solved.add(k));
+  knownFlags.forEach(k => flagged.add(k));
+  saveSolved();
+  saveFlags();
+  document.querySelectorAll('.card').forEach(c => {
+    const id = c.dataset.q;
+    c.querySelector('input').checked = solved.has(id);
+    const b = c.querySelector('.flag');
+    if (b) b.setAttribute('aria-pressed', String(flagged.has(id)));
+  });
+  refresh();
+  alert(`יובאו ${known.length} סימוני "נפתר" ו-${knownFlags.length} דגלים.` +
+        (skipped ? `\n${skipped} רשומות לא זוהו ודולגו.` : ''));
+});
+</script>
